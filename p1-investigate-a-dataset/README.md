@@ -8,4 +8,4 @@ The task:
 
 I chose the **Titanic Tragedy**.
 
-Link to HTML-Report:
+[Link to HTML-Report](https://rahbaran.github.io/data-analyst-udacity-nanodegree/p1-investigate-a-dataset/p1_final_rahbaran.html)

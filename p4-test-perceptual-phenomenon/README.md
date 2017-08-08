@@ -7,3 +7,5 @@ In a Stroop task, participants are presented with a list of words, with each wor
 ## Note
 
 I used `d3.js` for this project. So please run a server from localhost or click on the here.
+
+[Link to HTML-Report](https://rahbaran.github.io/data-analyst-udacity-nanodegree/p4-test-perceptual-phenomenon/p4_final_rahbaran.html)

@@ -10,3 +10,5 @@ why some employees from this company choose to leave. (variable named `left`).
 - knitted html-file
 - Rmd file
 - dataset as csv
+
+[Link to HTML-Report](https://rahbaran.github.io/data-analyst-udacity-nanodegree/p3-explore-summarize-data-with-R/p3_final_rahbaran.html)

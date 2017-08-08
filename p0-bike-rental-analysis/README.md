@@ -22,4 +22,4 @@ The Data is split among twelve other files, organized into three sets of four fi
 
 - weather_data.csv - Weather information by day for one station in each city in the bike share program.
 
-Link to HTML-Report:
+[Link to HTML-Report](https://rahbaran.github.io/data-analyst-udacity-nanodegree//p0-bike-rental-analysis/p0_final_rahbaran.html)

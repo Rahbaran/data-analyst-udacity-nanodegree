@@ -11,7 +11,7 @@ I chose to look at the OpenStreetMap (OSM) data from Düsseldorf, in the very we
 
 *Postal codes are fine*
 
-Inconsistent postal codes didn’t seem to be a problem as it was in the sample project. The German postal code system is very straight forward: always exactly five digits. Even the simple regex search in the Atom editor – \s[0-9]{5}\ and [0-9]{5}\s – to check if any postal code has been injected with an unintentional white space didn’t return any results. This must be due to German accuracy and that German postal code system is very straight forward: it’s always five digits. Letters are not allowed.
+Inconsistent postal codes didn’t seem to be a problem as it was in the sample project. The German postal code system is very straight forward: always exactly five digits. Even the simple regex search in the Atom editor – `\s[0-9]{5}\` and `[0-9]{5}\s` – to check if any postal code has been injected with an unintentional white space didn’t return any results. This must be due to German accuracy and that German postal code system is very straight forward: it’s always five digits. Letters are not allowed.
 
 *The Spelling of the Word “Straße”*
 

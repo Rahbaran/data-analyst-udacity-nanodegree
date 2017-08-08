@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Data Visualisation with Tableau</title>
+		<!-- Jquery & BS3 -->
+		<script src="../p7-create-a-d3js-story/jquery.min.js"></script>
+		<script src = "../p7-create-a-d3js-story/bootstrap.min.js"></script>
+		<link rel="stylesheet" href="../p7-create-a-d3js-story/bootstrap.min.css">
+		<style media="screen">
+			.table {
+				width: auto;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div class="container">
+			<h1>Machine Learning Final Project: Identify Fraud</h1>
+			<p><em>Summarize for us the goal of this project and how machine learning is useful in trying to accomplish it. As part of your answer, give some background on the dataset and how it can be used to answer the project question. Were there any outliers in the data when you got it, and how did you handle those? [relevant rubric items: &quot;data exploration&quot;, &quot;outlier investigation&quot;]</em></p>
+			<p><strong>Intro:</strong></p>
+			<p>The <a href="https://en.wikipedia.org/wiki/Enron_scandal">Enron scandal</a> around 2000 was so severe that even most Germans (where I live) have heard about it. Many executives at Enron were indicted for being heavily interwoven in the scandal due to hiding debt and/or manipulating financial balances.</p>
+			<p>The dataset at hand is a subset of Enron employees with some of them being part of the scandal. The goal is to identify these suspects. There are:</p>
+			<ul>
+			<li>a total of <strong>146</strong> employees (i.e., rows/observations) in the data set</li>
+			<li>with 21 features (incl. POI)</li>
+			<li>the feature <strong>poi</strong> (Person of Interest) is a Boolean and classifies employees if further investigation against fraud is necessary or not.</li>
+			<li>the other 20 features are of financial (e.g. salary) or communicational (e.g emails sent from_this_person_to_poi) nature</li>
+			<li>there are 18 'POI', and 128 'non-POI'</li>
+			<li>20 out of 21 features contain missing values</li>
+			</ul>
+			<p>Here's the full list from Udacity's Project Details:</p>
+			<ul>
+			<li><p><strong>financial features</strong> : ['salary', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus', 'restricted_stock_deferred', 'deferred_income', 'total_stock_value', 'expenses', 'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock', 'director_fees'] (all units are in US dollars)</p></li>
+			<li><p><strong>email features</strong> : ['to_messages', 'email_address', 'from_poi_to_this_person', 'from_messages', 'from_this_person_to_poi', 'shared_receipt_with_poi'] (units are generally number of emails messages; notable exception is 'email_address', which is a text string)</p></li>
+			</ul>
+			<p><strong>POI label</strong> : ['poi'] (boolean, represented as integer)</p>
+			<p><strong>Outliers:</strong></p>
+			<p>Via a brief exploratory data analysis and a double check with the file <strong>enron61702insiderpay.pdf</strong> (given by Udacity), the following outliers were detected:</p>
+			<ul>
+			<li>TOTAL</li>
+			<li>THE TRAVEL AGENCY IN THE PARK</li>
+			</ul>
+			<p>Both are aggregated observations and thus no employees. Besides,</p>
+			<ul>
+			<li>LOCKHART, EUGENE E</li>
+			</ul>
+			<p>can be considered as an outlier was removed as all his values were NaN.</p>
+			<p><em>What features did you end up using in your POI identifier, and what selection process did you use to pick them? Did you have to do any scaling? Why or why not? As part of the assignment, you should attempt to engineer your own feature that does not come ready-made in the dataset -- explain what feature you tried to make, and the rationale behind it. (You do not necessarily have to use it in the final analysis, only engineer and test it.) In your feature selection step, if you used an algorithm like a decision tree, please also give the feature importances of the features that you use, and if you used an automated feature selection function like SelectKBest, please report the feature scores and reasons for your choice of parameter values. [relevant rubric items: &quot;create new features&quot;, &quot;intelligently select features&quot;, &quot;properly scale features&quot;]</em></p>
+			<p><strong>New features</strong></p>
+			<p>I experimented with two new features, which are ratios (a financial and a communicational one):</p>
+			<ul>
+			<li>ratio_tsv_salary: setting the total stocks value to the annual salary might give some insights if the stock bonus is disproportionate to the base salary.</li>
+			<li>poi_messages_ratio: setting all poi-related messages to the sum of all messages might give some insights if an employee had continuous contact with POIs.</li>
+			</ul>
+			<p><strong>Selection Process</strong></p>
+			<p>I ranked all the features available (incl. AND excl. the two I created, except the feature email) via select k-best the method <em>feature_importances_</em> for Decision Trees and Random Forest. These were the TOP-10 ranked by select kBest:</p>
+			<table class="table table-striped">
+			<thead>
+			<tr class="header">
+			<th align="left">Feature</th>
+			<th align="left">Score</th>
+			</tr>
+			</thead>
+			<tbody>
+			<tr class="odd">
+			<td align="left">exercised_stock_options</td>
+			<td align="left">24.815079733218194</td>
+			</tr>
+			<tr class="even">
+			<td align="left">total_stock_value</td>
+			<td align="left">24.182898678566872</td>
+			</tr>
+			<tr class="odd">
+			<td align="left">bonus</td>
+			<td align="left">20.792252047181538</td>
+			</tr>
+			<tr class="even">
+			<td align="left">salary</td>
+			<td align="left">18.289684043404513</td>
+			</tr>
+			<tr class="odd">
+			<td align="left">deferred_income</td>
+			<td align="left">11.458476579280697</td>
+			</tr>
+			<tr class="even">
+			<td align="left">long_term_incentive</td>
+			<td align="left">9.9221860131898385</td>
+			</tr>
+			<tr class="odd">
+			<td align="left">restricted_stock</td>
+			<td align="left">9.212810621977086</td>
+			</tr>
+			<tr class="even">
+			<td align="left">total_payments</td>
+			<td align="left">8.7727777300916809</td>
+			</tr>
+			<tr class="odd">
+			<td align="left">shared_receipt_with_poi</td>
+			<td align="left">8.5894207316823774</td>
+			</tr>
+			<tr class="even">
+			<td align="left">loan_advances</td>
+			<td align="left">7.1840556582887247</td>
+			</tr>
+			</tbody>
+			</table>
+			<p>The 10th spot, 'loan_advances', was ditched, as it only had 3 (!) non NaN-values. Besides, its score is 15% lower than the spot above, which seemed a good arbitrary cut. So, I chose to work just with the TOP 9. Except of <em>shared_receipt_with_poi</em>, all features were financial.</p>
+			<p>Eventually, <em>shared_receipt_with_poi</em> was substituted with my own ratio feature <em>poi_messages_ratio</em>. The same goes for <em>salary</em> and <em>total_stock_value</em> features, which are part of my financial ratio. However, my financial ratio wasn't successful at all, so I removed it and added salary and total_stock_value again to the feature list.</p>
+			<p><strong>Scaling</strong></p>
+			<p>Scaling was not necessary for all tested algorithms (e.g. Random Forest and Decision Tree). However, it was still used as the scales for financial features dwarfed the communicational ones. If no scaling occurred, the financial features would get more weight.</p>
+			<p><em>What algorithm did you end up using? What other one(s) did you try? How did model performance differ between algorithms? [relevant rubric item: &quot;pick an algorithm&quot;]</em></p>
+			<p>I tried the following algorithms, with the following final results:</p>
+			<ul>
+			<li>GaussianNB: Accuracy: 0.84100 Precision: 0.38355 Recall: 0.31700</li>
+			<li>Decision Tree: Accuracy: 0.81000 Precision: 0.25686 Recall: 0.22450</li>
+			<li>*Kmeans: Accuracy: 0.85593 Precision: 0.31663 Recall: 0.06950</li>
+			</ul>
+			<p>*(This was out of curiosity, as Kmeans is primarily designed for clustering)</p>
+			<ul>
+			<li>RandomForest:Accuracy: 0.85407 Precision: 0.39936 Recall: 0.18750</li>
+			<li>SVM: &quot;Got a divide by zero when trying out&quot;, I assume no employee got labeled as a POI</li>
+			</ul>
+			<p>These are the results <em>without</em> my own feature <em>poi_messages_ratio</em>, but just taking the best ranked features from above:</p>
+			<ul>
+			<li>GaussianNB: Accuracy: 0.84067 Precision: 0.37611 Recall: 0.31400</li>
+			<li>Decision Tree: Accuracy: 0.80920 Precision: 0.28535 Recall: 0.28150</li>
+			<li>*Kmeans: Accuracy: 0.84807 Precision: 0.32963 Recall: 0.10450</li>
+			</ul>
+			<p>*(This was out of curiosity, as Kmeans is primarily designed for clustering)</p>
+			<ul>
+			<li>RandomForest:Accuracy: 0.85620 Precision: 0.37025 Recall: 0.15050</li>
+			<li>SVM: &quot;Got a divide by zero when trying out&quot;, I assume no employee got labeled as a POI</li>
+			</ul>
+			<p>So, in the end, my feature selection didn't work out for the tree algorithm but rather made the <strong>GaussianN</strong> B classifier to pass the test.</p>
+			<p><em>What does it mean to tune the parameters of an algorithm, and what can happen if you don't do this well? How did you tune the parameters of your particular algorithm? What parameters did you tune? (Some algorithms do not have parameters that you need to tune -- if this is the case for the one you picked, identify and briefly explain how you would have done it for the model that was not your final choice or a different model that does utilize parameter tuning, e.g. a decision tree classifier). [relevant rubric items: &quot;discuss parameter tuning&quot;, &quot;tune the algorithm&quot;]</em></p>
+			<p>The goal of parameter tuning is to improve the performance of the chosen algorithm. Hyperparameters are parameters whose values are set <strong>before</strong> the beginning of the learning. The optimization of hyperparameters can be done manually or with sklearn's GridSearchCV. If it's not done well, the performance of the chosen classifier might be under expectations in practice.</p>
+			<p>Although, I eventually used GaussianNB, I experimented with tuning the other classifiers to get some experience. The hyperparameters for two classifiers are given here as an example:</p>
+			<ul>
+			<li>Random Forest</li>
+			<li>criterion= There the options 'gini' and 'entropy' for measuring how to split</li>
+			<li>bootstrap = Whether bootstrap samples are used when building trees.</li>
+			<li>max_depth = The maximum depth of the tree. If too deep, you might overfit.</li>
+			<li><p>min_samples_split = The minimum number of samples required to split an internal node. If set too low, you might overfit.</p></li>
+			<li>SVM</li>
+			<li>C: low value is for smooth decision boundary, high value complex boundary (caveat: overfitting),</li>
+			<li><p>Gamma: if gamma is too large you might also end up overfitting</p></li>
+			</ul>
+			<p><em>What is validation, and what's a classic mistake you can make if you do it wrong? How did you validate your analysis? [relevant rubric item: &quot;validation strategy&quot;]</em></p>
+			<p>Validation tests the performance of your model. A classic mistake is to forego splitting the data into a training and testing set and thus using the whole dataset for training your model. Consequently, the model will be over fitted and perform poorly on new data. Therefore, I split the data into a train (70% of the data) and a test set (30% of the data).</p>
+			<p>Furthermore, StratifiedShuffleSplit from tester.py was used. As we are dealing with a small and imbalanced dataset in this project, working with smaller datasets is hard and in order to make validation models robust, we often go with cross-validation. This cross-validation method splits data in train/test sets by shuffling randomized folds. Per defaults, it reshuffles and splits the data 10 times. Moreover, when dealing with small imbalanced datasets, it is possible that some folds contain almost none (or even none!) instances of the minority class. The idea behind stratification is to keep the percentage of the target class as close as possible to the one we have in the complete dataset.</p>
+			<p><em>Give at least 2 evaluation metrics and your average performance for each of them. Explain an interpretation of your metrics that says something human-understandable about your algorithm's performance. [relevant rubric item: &quot;usage of evaluation metrics&quot;]</em></p>
+			<p>The simplest evaluation metric is accuracy, which divides the correctly labeled observations by all observations. However, a high score might be due to the <a href="https://en.wikipedia.org/wiki/Accuracy_paradox">accuracy paradox</a>. This happens when one class is very rare in the population. For this dataset, where there are only few POIs this might happen, so the recall and precision rates might be more appropriate.</p>
+			<ul>
+			<li>Precision: true positive / (true positive + false <strong>positive</strong> )</li>
+			<li>Recall: true positive / (true positive + false <strong>negative</strong> )</li>
+			</ul>
+			<p>A good precision means that whenever a POI gets flagged in the test set, we know with a lot of confidence that it's very likely to be a real POI and not a false alarm. On the other hand, a good recall means that, nearly every time a POI shows up in the test set, we are able to identify the person. We might have some false positives here, but pulling the trigger to early in this case just means further investigations, which is not equal to being directly indicted. So, recall might be more important the precision.</p>
+			<h3 id="references"><strong>References</strong></h3>
+			<ul>
+			<li><a href="http://napitupulu-jon.appspot.com/"><strong>http://napitupulu-jon.appspot.com/</strong></a> <strong>helped a lot to digest the whole course</strong></li>
+			<li><a href="http://scikit-learn.org/stable/documentation.html">http://scikit-learn.org/stable/documentation.html</a> lovely documentation to dig deeper</li>
+			<li><a href="https://github.com/keymanesh/Udacity--Intro-to-Data-Science/blob/master/Code/poi_id.py">https://github.com/keymanesh/Udacity--Intro-to-Data-Science/blob/master/Code/poi_id.py</a> /helped me to understand how to use gridsearch</li>
+			<li>Udacity reviewers</li>
+			</ul>
+		</div>
+	</body>
+</html>

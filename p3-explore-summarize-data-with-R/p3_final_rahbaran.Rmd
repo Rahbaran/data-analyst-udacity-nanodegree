@@ -1,0 +1,570 @@
+Exploration of Human Resources Data by Amir Rahbaran
+========================================================
+
+```{r global_options, include=FALSE}
+# Load all of the packages that you end up using
+# in your analysis in this code chunk.
+
+# Notice that the parameter "echo" was set to FALSE for this code chunk.
+# This prevents the code from displaying in the knitted HTML output.
+# You should set echo=FALSE for all code chunks in your file.
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(ggplot2)
+library(GGally)
+library(corrplot)
+library(rpart)
+library(caTools)
+```
+
+```{r Load_the_Data}
+# Load the Data
+hrd <- read.csv("HR_comma_sep.csv")
+```
+
+# Introduction
+
+The data consists of 14.999 observations with 10 variables. The main feature of 
+interest is to gain a better understanding which variables might have an impact 
+why some employees from this company choose to leave. (variable named `left`).
+
+## (Initial) Data Structure
+
+A quick overview first:
+
+```{r Data_Structure}
+str(hrd)
+summary(hrd)
+```
+
+Only two of the 10 variable are of type Factor. The int variables 
+"Work_accident", "left" and "promotion_last_5years" may solely assume the values
+of 0 and 1. The var `sales` is a bit awkwardly named. We are going to change it 
+to `occupation` and fix the typo in the word "montly".
+
+Out of the 14999 employees, 3571 have left, which equivalents to nearly 24 %:
+```{r Univariate_Plots}
+# count number of rows where employee left and divide it against ALL rows
+nrow(hrd[hrd$left == 1, ])  / nrow(hrd[hrd$left != NA,])
+setnames(hrd, old = c('sales','average_montly_hours'), 
+         new = c('occupation','avg_monthly_hours'))
+```
+
+Interestingly, "good" employees (defined here as: a rating above the third
+quarter) have even a higher rating of leaving (more than 32%):
+
+```{r}
+hrd %>% group_by(left, last_evaluation >= 0.87) %>% summarise(n = n())
+1231  / 3571
+```
+
+
+# Univariate and Bivariate Plots Section
+The univariate and bivariate section are conflated into one section as I prefer
+to start the analysis with some general plots built with corrplot and ggpairs. 
+For the correlation plot, we choose all variables that are not of type factor.
+
+```{r Bivariate_Plots, fig.width=11, fig.height=11}
+hrd_cor <- hrd %>% select(satisfaction_level:promotion_last_5years)
+M <- cor(hrd_cor)
+corrplot(M, method="circle")
+ggpairs(hrd)
+```
+
+# Univariate and Bivariate Analysis
+
+The correlation plot confirms the obvious: Those who are unsatisfied leave the 
+company. Besides, "work accidents" and "promotion within the last five years"
+also seems to play a role reg. leaving the company. 
+There's also a negative correlation reg. satisfaction and number of projects 
+involved.
+
+To get a broader overview, we made use of ggpairs. However, some plots are not 
+very explanatory due to the variable types and order. We change the order of 
+salary to high, medium, low and convert the int variables `Work_accident`, `left` 
+and `promotion_last_5years` to factor variables as they just can assume values
+of 0 and 1. Furthermore, as `left` is our main interest here, the charts are 
+going to be colour coded by this variable.
+
+```{r Bivariate_Plots_2, fig.width=11, fig.height=11}
+hrd$salary = factor(hrd$salary, levels = c("high", "medium", "low"))
+hrd$left = factor(hrd$left)
+hrd$Work_accident = factor(hrd$Work_accident)
+hrd$promotion_last_5years = factor(hrd$promotion_last_5years)
+ggpairs(hrd) # use mapping = aes(color = left) for multivar analysis
+
+```
+
+The result of ggpairs gives us some more insights. The 25th percentile of the 
+satisfaction level gets lower and lower, the less the salary (cf. upper right
+graph). However, the median and 75th percentile are almost stable.
+
+The share of people who have received a promotion in the last 5 years is 
+marginal (8th row, 8th column).
+
+If we look at the `left` column (fourth column from the right), we see a much
+larger IQR regarding "number of projects" and "average monthly hours" for those
+who have left the company. 
+
+Let's have a deeper look at `avg_monthly_hours`:
+
+```{r fig.width=11, fig.height=11}
+### defining a general function for basic histograms
+plot.histobar = function(x.var, y.var = NA, pf) {
+  p = ggplot(aes_string(x.var), data = pf)
+  if(is.na(y.var) == TRUE){
+    p + geom_histogram(bins=25, color = "black", fill = "steelblue")
+  }  
+  else{
+    p + geom_bar(aes_string(y = y.var),stat="identity", color = "black", 
+                 fill = "steelblue")
+  }
+}
+###
+
+plot.histobar("avg_monthly_hours",pf = hrd)
+plot.histobar("avg_monthly_hours",pf = hrd) + facet_wrap(~ left)
+
+ggplot(aes(y = avg_monthly_hours, x = left), data=hrd) + geom_boxplot(fill = "steelblue") + stat_summary(fun.y=mean, geom="point", shape=4, color="orange")
+
+```
+
+The histogram of those who left resembles a bimodal distribution where as the
+histogram of the staying employees resembles mostly a unimodal one. Those who 
+left seem to have worked a lot or not enough. The leaving employees seem to lack
+a "golden mean".The boxplots reveal that the distribution for those who stay is 
+fairly symmetric, i.e. the median is situated in the center of the IQR and it is
+very close to the mean. Besides, the whiskers have a similar length. In 
+comparison, those who left have a broader IQR, the upper whisker is much longer
+and the media is clearly above the median and close relatively close to the 25th
+percentile.
+
+A quick look considering the impact of job role might also be helpful. 
+Therefore, we're going to transform the data a bit:
+
+```{r Data_Transform, fig.width=11, fig.height=11}
+hrd_promotion_left_by_job = hrd %>% 
+                              group_by(occupation) %>% 
+                              summarise(promotion_received = 
+                                          sum(promotion_last_5years == 1 )/n(), 
+                              leaving_rate = sum(left == 1 )/n() )
+```
+
+```{r fig.width=11, fig.height=11}
+plot.histobar("occupation", "leaving_rate", hrd_promotion_left_by_job)
+plot.histobar("occupation", "promotion_received", hrd_promotion_left_by_job)
+```
+
+The last two graphs give indeed some insights about the relavance of the job 
+role. Employees in management leave less, maybe because they're more likely to
+receive a promotion? Poor people in product management don't get any promotion 
+at all. 
+
+Although ggpairs has given some insights at a glance, some of the 100 plots
+shown are overplotted. So, let's replot some of them:
+
+```{r fig.width=11, fig.height=11}
+ggplot(aes(avg_monthly_hours, satisfaction_level), data = hrd) +
+  geom_point(alpha = 1/10, 
+             size = 0.75, 
+             position = position_jitter(h = 0),
+             color = 'orange')
+
+ggplot(aes(last_evaluation, satisfaction_level), data = hrd) +
+  geom_point(alpha = 1/10, size = 0.75, 
+             position = position_jitter(h = 0),
+             color = 'orange')
+```
+
+Here we see some interesting patterns. There's a "cohort" with employees working
+240+ hours who seem to be very unhappy. In the next figure, we see very well
+evaluated employees (0.75+), with a similar `satisfaction_level` as those
+working 240+ hours. 
+
+# Multivariate Plots and Analysis Section
+
+It's interesting to see if many of these well evaluated and much working
+employees have already left.
+
+```{r Multivariate_Plots_1, fig.width=11, fig.height=11}
+###
+### defining a general function for multivariate scatter plots
+plot.scatter = function(x.var, y.var, pf, c, a, s) {
+  ggplot(aes_string(x.var, y.var, color = c), data = pf) +
+    geom_point(alpha = a, size = s, position = position_jitter(h = 0)) 
+} 
+###
+
+plot.scatter('last_evaluation', 'satisfaction_level', hrd, 'left', 0.5, 0.75) +
+  ggtitle("Satisfaction in Relation to Last Evaluation") + 
+  scale_color_brewer(type = 'qual', 
+                     guide = guide_legend(title = 'Employee left?', 
+                                          reverse = T, 
+                                          override.aes = list(alpha = 1, 
+                                                              size = 3)))
+```
+
+This first graph clearly shows that people of two specific cohorts tend to leave.
+The first cohort is evaluated between roughly  0.425 and 0.575 and has a 
+satisfaction level between 0.35 and 0.45. This specific "purple island" in the
+middle of the figure leads to some questions. Why aren't employees prone to leave,
+whose satisfaction level is below 0.35? Are they cognitively biased to feel 
+unsatisfied no matter who their employer is? An analogous question concerns the
+last evaluation: why do employees with a score of less than 0.425 actually stay?
+Are they generally afraid of the quality of their working skills and hence assume
+they won't find a new job? Far more concerning is the state of the second leaving
+cohort as they have been very well evaluated by the employer (i.e., 0.77+). This
+group is extremely dissatisfied (satisfaction level 0.125 and less). Do they 
+leave because they know what their worth in the working market?
+
+```{r  Multivariate_Plots_2, fig.width=11, fig.height=11}
+
+plot.scatter('avg_monthly_hours', 'satisfaction_level', hrd, 'left', 0.5, 0.75) +
+  ggtitle("Satisfaction in Relation to Average Monthly Hours") + 
+  scale_color_brewer(type = 'qual', 
+                     guide = guide_legend(title = 'Employee left?', 
+                                          reverse = T, 
+                                          override.aes = list(alpha = 1, 
+                                                              size = 3)))
+```
+
+The second figure looks strikingly similar to the one above. It shows that the
+top rated employees with low satisfaction also work a lot. Half of the cohort 
+works more than 275 hours per month, which is rarely the case for others — 
+except  of a few individuals who have mostly left, too (glance through the 
+righter fifth of the chart from above to spot the purple dots). So we can surely
+say that long working hours has a very strong correlation on leaving and a
+weaker but still strong correlation to the employee's satisfaction level.
+
+```{r echo=FALSE, Multivariate_Plots_3, fig.width=11, fig.height=11}
+# prepare buckets for boxplots
+hrd$number_project_bucket = cut(hrd$number_project, breaks = c(1,2,3,4,5,6,7))
+
+plot.scatter('number_project_bucket', 'satisfaction_level', hrd, 'left', 0.5, 0.75) +
+  ggtitle("Satisfaction in Relation to Number of Projects") + 
+  scale_color_brewer(type = 'qual', 
+                     guide = guide_legend(title = 'Employee left?', 
+                                          reverse = T, 
+                                          override.aes = list(alpha = 1, 
+                                                              size = 1))) +
+  geom_boxplot(alpha = 0.6) + stat_summary(fun.y=mean, geom="point", 
+                                           shape=4, color="orange")
+```
+
+The third graph summarizes some very relevant information to our question why
+employees leave. Employees leave who either have a lot of projects or too few 
+and whose satisfaction level is below roughly 0.45. The "sweet spot" of project 
+numbers seems to be three. People with three projects barely leave and to be more
+satisfied with their work (around 0.48+). The reason that three projects is a 
+good balance might be that employees are neither underwhelmed nor overwhelmed 
+reg. quantity of work. Plus, three different projects seems to be a good number
+for not being bored by repetitive work (which might be the case if there is only
+1-2 projects) but also the chance of getting bogged down in too many projects is
+low in contrast to too many projects.
+
+Besides evaluation and "hours/project-load", maybe promotions, work accidents
+and how much time an employee spent in the company could have an influence 
+on leaving.
+
+```{r Multivariate_Plots_4, fig.width=11, fig.height=11}
+plot.scatter('promotion_last_5years', 'satisfaction_level', hrd, 'left', 
+             0.5, 0.75) +
+  ggtitle("Satisfaction in Relation to Promotion") +
+  labs(x="Promotion Received (1 = Yes)?",y="Satisfaction Level") + 
+  scale_color_brewer(type = 'qual', 
+                     guide = guide_legend(title = 'Employee left?', 
+                                          reverse = T, 
+                                          override.aes = list(alpha = 1, 
+                                                              size = 3)))
+```
+
+The fourth graph shows that people who don't get promoted are more likely to 
+leave than those who do.
+
+```{r Multivariate_Plots_5, fig.width=11, fig.height=11}
+plot.scatter('promotion_last_5years', 'satisfaction_level', hrd, 'left',
+             0.5, 0.75) +
+  ggtitle("Satisfaction in Relation to Work Accident") +
+  labs(x="Work accident happened (1 = Yes)?",y="Satisfaction Level") + 
+  scale_color_brewer(type = 'qual', 
+                     guide = guide_legend(title = 'Employee left?', 
+                                          reverse = T, 
+                                          override.aes = list(alpha = 1, 
+                                                              size = 3)))
+```
+
+The fifth graph does NOT show that people who have had an accident are prone to
+leave, which I would have expected. 
+
+```{r Multivariate_Plots_6, fig.width=11, fig.height=11}
+plot.scatter('time_spend_company', 'satisfaction_level', hrd, 'left', 
+             0.5, 0.75) +
+  ggtitle("Satisfaction in Relation to Time Spent in the Company") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x="Time Spent in the Company",y="Satisfaction Level") + 
+  scale_color_brewer(type = 'qual', 
+                     guide = guide_legend(title = 'Employee left?', 
+                                          reverse = T, 
+                                          override.aes = list(alpha = 1, 
+                                                              size = 3)))
+```
+
+The sixth graph shows indeed that's there's a "sweet spot"" when people tend
+to leave. Many employees leave between 2.5 and 4 years if they're unhappy. Maybe
+that's the time whey they're fed up and those who pass this "fed-up-phase"" just
+accept their fate and stay with the company. Those who are more satisfied are 
+likely to leave between four to six years. A hypothesis could be that after this
+time it's time foster their own career if they don't get promoted.
+
+```{r Multivariate_Plots_7, fig.width=11, fig.height=11}
+ggplot(hrd, aes(salary, occupation, 
+                z = avg_monthly_hours)) + 
+  stat_summary_2d(aes(colour = avg_monthly_hours)) + 
+  scale_fill_gradientn(colours = c("purple","orange"), name = "avg monthly hours")
+```
+
+The last paragraph also highlights some issues. Marketing employees with high salaries work the least but those with low salaries the a lot.Also, hr people with high salaries work more than hours. 
+
+# Bonus: Machine Learning
+Analyzing the data via statistical learning and machine learning, respectively
+was not part of this project's requirement. However, due to gaining some practice
+with ML in R, curiosity and a better understanding of the data, a brief section
+is dedicated to the topic. 
+
+To keep interpret ability of the data, we begin with a simple decision tree.
+
+```{r fig.width=11, Machine_Learning}
+# Importing the dataset
+dataset = read.csv('HR_comma_sep.csv')
+
+setnames(dataset, old = c('sales','average_montly_hours'), 
+         new = c('occupation','avg_monthly_hours'))
+
+# Encoding categorical data
+dataset$occupation = as.numeric(factor(dataset$occupation,
+                                  levels = c('accounting',
+                                          'hr', 'IT', 'management', 'marketing',
+                                          'product_mng', 'RandD', 'sales', 
+                                          'support', 'technical'),
+                                  labels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)))
+
+dataset$salary = as.numeric(factor(dataset$salary,
+                                   levels = c('high', 'medium','low'),
+                                   labels = c(3, 2, 1)))
+
+
+# Encoding the target feature as factor
+dataset$left = as.factor(dataset$left)
+
+# quick check if all vars are numbers for future computation
+#str(dataset)
+
+# Splitting the dataset into the Training set and Test set
+# install.packages('caTools')
+library(caTools)
+set.seed(127)
+split = sample.split(dataset$left, SplitRatio = 0.75)
+training_set = subset(dataset, split == TRUE)
+test_set = subset(dataset, split == FALSE)
+
+#building and plotting tree
+library("rpart")
+library("rpart.plot")
+pred_simple_tree = rpart(left ~ ., data = training_set)
+rpart.plot(pred_simple_tree, 
+           type = 1, 
+           fallen.leaves = F, 
+           cex = 1, 
+           extra = 102, 
+           under = T)
+
+# old code for future reference 
+# regressor = rpart(formula = left ~ ., data = training_set, 
+#                                       control = rpart.control(minsplit = 1))
+```
+
+
+```{r XG-Boost}
+# set up the cross-validated hyper-parameter search
+# install.packages('caret')
+library(caret)
+
+# using less options so it doesn't take too long to compute
+xgb_grid = expand.grid(
+  nrounds = 10,
+  max_depth = c(2, 3, 4),
+  eta = c(0.001, 0.1, 0.4),
+  gamma = c(0),
+  subsample = c(0.75),
+  colsample_bytree = c(0.5, 0.7, 1),
+  min_child_weight = 2
+)
+
+# pack the training control parameters
+xgb_trcontrol = trainControl(
+  method = "cv",
+  number = 3,
+  verboseIter = TRUE,
+  returnData = FALSE,
+  returnResamp = "all",   # save losses across all models
+  classProbs = TRUE,      # set to TRUE for AUC to be computed
+  summaryFunction = twoClassSummary,
+  allowParallel = TRUE
+)
+
+classifier_xgb = train(form = left ~ ., 
+                         data = training_set,
+                         #trControl = xgb_trcontrol,
+                         tuneGrid = xgb_grid,
+                         method = 'xgbTree'
+                         #metric="Kappa"
+                          )
+
+# Choosing the best classifier with optimal parameters
+classifier_xgb
+```
+
+```{r ML-Summary}
+classifier_xgb$bestTune
+
+# Predicting the test set results & converting to numeric
+y_pred = predict(classifier_xgb, newdata = as.matrix(test_set[-7]))
+y_pred = as.numeric(as.character(y_pred))
+y_pred = (y_pred >= 0.5)
+table(y_pred)
+
+# Making the Confusion Matrix and Calculating the Accuracy
+cm = table(test_set[, 7], y_pred)
+cm
+accuracy = (cm[1,1] + cm[2,2]) / (cm[1,1] + cm[2,2] + cm[1,2] + cm[2,1])
+accuracy
+
+# Save and build the bestTune
+library(xgboost)
+final_classifier = xgboost(data = as.matrix(training_set[-7]), 
+                           label = training_set$left,
+                           nrounds = 10,
+                           max_depth = 4, 
+                           eta = 0.4, nthread = 2, 
+                           gamma = 0,
+                           min_child_weight = 2, 
+                           subsample = 0.75, 
+                           colsample_bytree = 1,
+                           verbose = 1)
+
+importance_matrix = xgb.importance(feature_names = colnames(training_set),
+                                   model = final_classifier)
+#print(importance_matrix)
+xgb.plot.importance(importance_matrix = importance_matrix, top_n = 5)
+```
+
+Except of the feature weighting, there are no huge surprises here. Our algorithm
+puts `satisfaction_level` by far first - which seems common sense though. 
+However, it's more intriguing to see that `satisfaction_level` alone is weighted
+all other features combined (almost 55%). The smaller half is made up just by 
+features No. 2-4 (side note: the rest of features don’t play a role out all, 
+hence I cut them off). 
+
+# Final Plots and Summary
+
+### Plot One
+```{r Plot_One, fig.width=11, fig.height=11}
+plot.scatter('avg_monthly_hours', 'satisfaction_level', hrd, 'left', 
+             0.5, 0.75) +
+  ggtitle("Satisfaction in Relation to Average Monthly Hours") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x="Average Monthly Hours",y="Satisfaction Level") +
+  scale_color_brewer(type = 'qual', 
+                     guide = guide_legend(title = 'Employee left?', 
+                                          reverse = T, 
+                                          override.aes = list(alpha = 1, 
+                                                              size = 3)))
+```
+
+### Description One
+
+This first final plot is equivalent to the second plot in the multivariate 
+section. The plot illustrated that the two leaving cohorts in the lower end and 
+mid left have a different work load. Plus, both cohorts are not very happy about
+their situation and hence might leave because of this reason.
+
+### Plot Two
+
+```{r Plot_Two, fig.width=11, fig.height=11}
+plot.scatter('promotion_last_5years', 'satisfaction_level', hrd, 'left', 
+             0.5, 0.75) +
+  ggtitle("Satisfaction in Relation to Promotion") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x="Promotion Received (1 = Yes)?",y="Satisfaction Level") + 
+  scale_color_brewer(type = 'qual', 
+                     guide = guide_legend(title = 'Employee left?', 
+                                          reverse = T, 
+                                          override.aes = list(alpha = 1, 
+                                                              size = 3)))
+```
+
+### Description Two
+
+The second plot shows the importance of a promotion. Looking at 
+employees with a satifaction level around 0.75 and above still have a high 
+likelihood to leave if they don't receive any promotion.
+
+### Plot Three
+
+```{r Plot_Three, fig.width=11, fig.height=11}
+temp <- hrd_promotion_left_by_job %>% 
+  gather("type", "n", 2:3)
+
+plot.histobar("occupation", "n", temp) + 
+  ggtitle("Promotion Rate per Department") + 
+  labs(x="Department",y="Promotion Rate") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  facet_grid(type~.)
+```
+
+### Description Three
+
+Also, the management has the lowest leaving rate probably partially due to their
+high promotion rate.
+
+# Reflection
+To me, this project was very exciting as it was also an introduction to the
+kaggle site. There, I found this data set via the latest upvotes. 
+
+I had some issues with the data set as there was no cookbook. What does projects
+involved exactly mean? Does the value refer to all the projects in an employee's
+career with the company, average yearly projects or even the current status 
+(i.e., involved in simultaneous projects)? The salary variable is also a bit dissatisfactory. When is the salary defined as high or low? In comparison to 
+other employees? If so, to all employees or only to the peers (e.g. comparing to
+other accountants)? Or is it a comparison to some industry standards? Also 
+confusing: What is exactly a work accident?
+
+I really enjoyed the functions corrplot and ggpairs as they quickly give you a 
+quick overview regarding univariate and bivariate analysis. I'm grateful that 
+Udacity introduced us to the GGally library. Suddenly plotting
+*_100 visualizations_* tremendously speeds up the EDA-process. However, for me
+it was difficult to gain additional insights from the uni- and bivariate 
+analysis to the multivariate analysis.
+
+In future works, the salary as a number variable would be interesting as we 
+would get a finer view how salary might correlate with evaluation and working 
+hours.
+
+I added the machine learning section because I had started taking the machine 
+learning class nearly simultaneously. It was a good exercise to "convert" 
+concepts from the ml-course, which were taut in Python, into R.
+
+Nonetheless, it was a lot of fun and I hope to learn more regarding predictions,
+soon. 
+
+# References
+
+* Udacity EDA Course
+* Udacity Review
+* Data and Acquaintance to Corrplot Library via Kaggle: https://www.kaggle.com/ludobenistant/hr-analytics 
+* Stack Overflow
+* R Bloggers
+* Udemy Machine Learning: 
+https://www.udemy.com/machinelearning/learn/v4

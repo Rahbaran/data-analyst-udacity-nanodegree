@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+    .bar1 rect {
+      fill: rgba(0,0,255,0.6);
+    }
+
+    .bar1:hover rect{
+      fill: rgba(0,0,255,0.9);
+    }
+
+    .bar1 text {
+      fill: #fff;
+      font: 10px sans-serif;
+    }
+
+    .bar2 rect {
+      fill: rgba(255,0,0,0.6);
+    }
+
+    .bar2:hover rect{
+      fill: rgba(255,0,0,0.9);
+    }
+
+    .bar2 text {
+      fill: #fff;
+      font: 10px sans-serif;
+    }
+
+    li {
+      margin: 10px;
+    }
+
+    </style>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <!-- bootstrap 4(!) -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+    <script>
+
+    function draw(data) {
+
+      var allCongruentData = data.map(function(e){ return e.Congruent;});
+      var allIncongruentData = data.map(function(e){ return e.Incongruent;});
+
+      var formatCount = d3.format(",.0f");
+
+      var svg = d3.select("svg"),
+          margin = {top: 10, right: 30, bottom: 30, left: 30},
+          width = +svg.attr("width") - margin.left - margin.right,
+          height = +svg.attr("height") - margin.top - margin.bottom,
+          // width = Math.min(window.innerWidth, 800) - margin.left - margin.right,
+          // height = Math.min(window.innerWidth, 800) - margin.top - margin.bottom,
+          g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      // var svg = d3.select("#chart").append("svg")
+      //   .attr("width", width + margin.left + margin.right)
+      //   .attr("height", height + margin.top + margin.bottom)
+      //   .append("g")
+      //   .attr("transform", "translate(" + (width/2 + margin.left) + "," + (height/2 + margin.top) + ")");
+
+      var x = d3.scaleLinear()
+          .rangeRound([0, width])
+          .domain([8, 36]);
+
+      var bins1 = d3.histogram()
+          .domain(x.domain())
+          .thresholds(x.ticks(9))
+          (allCongruentData);
+
+      var bins2 = d3.histogram()
+          .domain(x.domain())
+          .thresholds(x.ticks(9))
+          (allIncongruentData);
+
+      var y = d3.scaleLinear()
+          .domain([0, d3.max(bins1, function(d) { return d.length; })])
+          .range([height, 0]);
+
+      var bar1 = g.selectAll(".bar1")
+        .data(bins1)
+        .enter().append("g")
+          .attr("class", "bar1")
+          .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; });
+
+      bar1.append("rect")
+          .attr("x", 0.5)
+          .attr("width", x(bins1[0].x1) - x(bins1[0].x0) - 1)
+          .attr("height", function(d) { return height - y(d.length); });
+
+
+      var bar2 = g.selectAll(".bar2")
+        .data(bins2)
+        .enter().append("g")
+          .attr("class", "bar2")
+          .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; });
+
+      bar2.append("rect")
+          .attr("x", 0.5)
+          .attr("width", x(bins2[0].x1) - x(bins2[0].x0) - 1)
+          .attr("height", function(d) { return height - y(d.length); });
+
+      bar1.append("text")
+          .attr("dy", ".75em") // why?
+          .attr("y", 6)
+          .attr("x", (x(bins1[0].x1) - x(bins1[0].x0)) / 2)
+          .attr("text-anchor", "middle")
+          .text(function(d) { return formatCount(d.length); });
+
+      bar2.append("text")
+          .attr("dy", ".75em") // why?
+          .attr("y", 6)
+          .attr("x", (x(bins2[0].x1) - x(bins2[0].x0)) / 2)
+          .attr("text-anchor", "middle")
+          .text(function(d) { return formatCount(d.length); });
+
+      // add the x Axis
+      g.append("g")
+          .attr("class", "axis axis--x")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(x));
+
+      // add the y Axis
+      g.append("g")
+          .attr("transform", "translate(-10)")
+          .call(d3.axisLeft(y)
+            .ticks(5));
+
+      var legend = svg.append("g")
+              .attr("class", "legend")
+              .attr("transform", "translate(" + (width - 245) + "," + 40 + ")")
+              .selectAll("g")
+              .data(["Congruent", "Incongruent"])
+              .enter().append("g");
+
+          legend.append("text")
+              .attr("y", function(d, i) {
+                  return i * 30 + 5;
+              })
+              .attr("x", 200)
+              .text(function(d) {
+                  return d;
+              });
+
+          legend.append("rect")
+              .attr("y", function(d, i) {
+                  return i * 30 - 8;
+              })
+              .attr("x", 167)
+              .attr("width", 20)
+              .attr("height", 20)
+              .attr("fill", function(d) {
+                  if (d == "Congruent") {
+                      return 'rgba(0,0,255,0.6';
+                  } else {
+                      return 'rgba(255,0,0,0.6';
+                  }
+              });
+    }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <h1>Stroop Test</h1>
+          <p>Quick note: Local server necessary for running d3.js. Computations were done in R.</p>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+        <h2>Background Information</h2>
+        <p>
+         In a Stroop task, participants are presented with a list of words,
+         with each word displayed in a color of ink.
+         The participant’s task is to say out loud the color of the ink in which the word is printed.
+        </p>
+        <p>
+          The task has two conditions: a congruent words condition, and an incongruent words condition.
+          In the congruent words condition, the words being displayed are color words whose names match the colors
+          in which they are printed: for example style <em style="color:red">RED</em>, <em style="color:blue">BLUE</em>. In the incongruent words condition,
+          the words displayed are color words whose names do not match the colors in which they are printed:
+          for example <em style="color:green">PURPLE</em>, <em style="color:purple">ORANGE</em>. In each case, we measure the time it takes to name the ink colors in equally-sized lists.
+          Each participant will go through and record a time from each condition.
+        </p>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+        <h2>Project Questions &amp; Answers</h2>
+         <ol>
+           <li>What is our independent variable? What is our dependent variable?</li>
+           <ul>
+             <li>Independent (explanatory) variable: condition (i.e., congruence) of a word</li>
+             <li>Dependent (response) variable: time to read a word</li>
+           </ul>
+           <li>
+             What is an appropriate set of hypotheses for this task?
+             What kind of statistical test do you expect to perform? Justify your choices.
+             <br>
+             The one-tailed test seems a better option than a two-tailed test
+             if we intuitively consider incongruent words will not improve recognition times.
+             The one-tailed test provides more power to detect an effect
+             although we miss the opportunity to test if incongruent might improve recognition time.
+             It this case, the risks are negligible.
+             <br>
+             <br>
+             The hypothesis are thus:
+             <br>
+             H<sub>0</sub>: μ<sub>Con</sub>  = μ<sub>In</sub>
+             <ul>
+               <li>Null hypothesis (H<sub>0</sub>) states that there is no difference between incongruent and congruent population mean times</li>
+               <li>μ<sub>Con</sub> denotes the congruent population mean and μ<sub>In</sub> denotes the incongruent population mean</li>
+             </ul>
+             H<sub>A</sub>: μ<sub>Con</sub> &lt; μ<sub>In</sub>
+             <ul>
+               <li>Alternative hypothesis (H<sub>A</sub>) states that the congruent population mean time is <em>smaller</em> than the incongruent mean time </li>
+             </ul>
+             <br>
+             <p>We are going to choose a dependent t-test:</p>
+             <ul>
+               <li><em>T-test </em>because we don't know any population parameters (e.g. standard deviation) and the sample is fairly small (n &lt; 30). Besides, our distributions are nearly bell-shaped distributions. Such distributions "will still provide values of T that approximate the t-distribution very closely."(Walpole, R. et al. 2011, p. 248)</li>
+               <li><em>Dependent</em> because this is similar to a "before and after test" – a repeated mesaurement with each participant. We test the mean of pairwise differences.</li>
+             </ul>
+           </li>
+
+
+           <li>
+             Report some descriptive statistics regarding this dataset.
+             Include at least one measure of central tendency
+             and at least one measure of variability.
+             <table class="table table-hover small">
+               <thead class="thead-inverse">
+                 <tr>
+                   <th>vars</th>
+                   <th>n</th>
+                   <th>mean</th>
+                   <th>sd</th>
+                   <th>median</th>
+                   <th>min</th>
+                   <th>max</th>
+                   <th>range</th>
+                   <th>se</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 <tr>
+                   <th scope="row">Congruent</th>
+                   <td>24</td>
+                   <td>14.05</td>
+                   <td>3.56</td>
+                   <td>14.36</td>
+                   <td>8.63</td>
+                   <td>22.33</td>
+                   <td>13.70</td>
+                   <td>0.73</td>
+                 </tr>
+                 <tr>
+                   <th scope="row">Incongruent</th>
+                   <td>24</td>
+                   <td>22.02</td>
+                   <td>4.80</td>
+                   <td>21.02</td>
+                   <td>15.69</td>
+                   <td>35.26</td>
+                   <td>19.57</td>
+                   <td>0.98</td>
+                 </tr>
+               </tbody>
+              </table>
+           </li>
+           <li>
+             Provide one or two visualizations that show the distribution of the sample data.
+             Write one or two sentences noting what you observe about the plot or plots.
+             <svg width="960" height="600"></svg>
+            <p>
+              <ul>
+                <li>The incongruent distribution has two outliers in the far right at roughly 35 seconds</li>
+                <li>Other than that, both distributions resemble a normal distribution</li>
+              </ul>
+            </p>
+           </li>
+           <li>
+             Now, perform the statistical test and report your results.
+             What is your confidence level and your critical statistic value?
+             Do you reject the null hypothesis or fail to reject it?
+             Come to a conclusion in terms of the experiment task.
+             Did the results match up with your expectations?
+             <ul>
+               <li>Confidence level = 0.95 %</li>
+               <li>P-critical = 0.5 % </li>
+               <li>T-critical = -1.71 </li>
+               <li>Our result is: <strong>t = -8.0207, df = 23, p-value = 2.052e-08</strong></li>
+               <li>With a p value close to zero we can confidently reject the null hypothesis. In other words, we can say that it takes <em>significantly</em> longer to complete the incongruent condition task than the congruent condition task.</li>
+               <li>The result matches our expectations (i.e., our intuition and
+                 the above visualization of the distributions). </li>
+             </ul>
+          </li>
+          <li>
+            Optional: What do you think is responsible for the effects observed?
+            Can you think of an alternative or similar task that would result in a similar effect?
+            Some research about the problem will be helpful for thinking about these two questions!
+            <br>
+						<br>
+            When the words are incongruent the brain has to perform two tasks.
+            First, it sees the colour of the word and subconsciously also thinks
+            this matches the written word. Second, in a separate task, our brain has to focus
+            on the written and try to ignore the colour of the word. In other words,
+            incongruent words just need more “brain power” and hence it takes longer
+            to read the word correctly.
+          </li>
+          <li>
+            References
+            <ul>
+              <li>Feedback from Udacity-Reviewers</li>
+              <li> Walpole, R., Myers, R., Myers, S. Ye, K. 2011. Probability and Statistics for Engineers and Scientists (9th Ed). London: Pearson.</li>
+            </ul>
+          </li>
+         </ol>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      d3.csv("stroopdata_d3.csv", function(d) {
+          d.Congruent = +d.Congruent;
+          d.Incongruent = +d.Incongruent;
+          return d;
+        }, draw);
+    </script>
+  </body>
+</html>

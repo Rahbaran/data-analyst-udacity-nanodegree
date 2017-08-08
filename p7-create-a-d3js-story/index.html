@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+		<title>Final Project Udacity Data Visualisation</title>
+
+		<!-- Google Fonts -->
+		<link href='https://fonts.googleapis.com/css?family=Bangers' rel='stylesheet' type='text/css'>
+		<link href='https://fonts.googleapis.com/css?family=Oswald' rel='stylesheet' type='text/css'>
+		<link href='https://fonts.googleapis.com/css?family=Lato:400,900' rel='stylesheet' type='text/css'>
+
+		<!-- jQuery -->
+		<script src="jquery.min.js"></script>
+		<!-- Bootstrap -->
+		<link href="bootstrap.min.css" rel="stylesheet">
+		<script src="bootstrap.min.js"></script>
+		<!-- CSS sheet -->
+		<link rel="stylesheet" href="style.css">
+
+		<!-- Two scripts to make the Bootstrap tooltip follow the mouse movement
+			 taken from https://github.com/ghophp/bootstrap-popover-move -->
+		<script src="bootstrap.tooltip.js"></script>
+		<script src="bootstrap.popover.js"></script>
+	</head>
+	<body>
+		<div class="container">
+		<div class = "title">Introduction</div>
+		<ul class="nav nav-tabs">
+			<li class="nav-item active">
+				<a class="nav-link" href="#">Intro</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="page2.html">Grouped by Colors</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="page3.html">Grouped by Super Arcs</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="page4.html">Zoomed in Diagram</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="page5.html">Archived: Gradient Colours</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="page6.html">Archived: Gradient Colours</a>
+			</li>
+		</ul>
+
+			<div class="row">
+				<h2>Foreword</h2>
+				<p>
+					This final project might be different than other submissions as it is a real use case from my employer (data anonymised). My employer is getting more and more into data science services and one of the tasks was data visualisation task which I was assigned to. Although due to the anonymisation the "narrative" is severely impeded, I still chose this project to give a real life example and show how Udacity's course actually build the fundament to pursue this project.
+					<br>
+					Our client needed an interactive visualisation to gain an overview which of his products and services are integrated into which websites. The main diagram is on page2.html. The Services arcs have a lighter color and no chords because they are passive – they have been integrated into the companies.
+					<br>
+					I used d3.js to produce chord diagrams. I had no prior experience except of Udacity's teaching prior to this final project. The customer was very pleased with the result and entrusted us to build several more chord diagrams. I must admin it was a very steep learning curve. I had huge problems to modify the chord diagram to group chords. Either for “Super Arcs” or for grouping arcs via colours. Also adding and CENTRALISING text into arcs was extremely tough for me. However, learning some new plain vanilla javascript was very pleasing (e.g. double parenthesis when calling a function).
+					<br>
+					Another issue for novices is that most examples in D3 are still in v3 although v4 was released nearly a year ago. Countless hours were invested to make v3 examples work with v4. I would have never expected too have huge issues in D3 with mundande tasks like centralising text. However, now I feel more confident with this powerful framework and can't wait to create new visualisations with it.
+
+					<h2>References</h2>
+					<ul>
+						<li><a href="https://www.visualcinnamon.com/2016/06/orientation-gradient-d3-chord-diagram.html">Visual Cinnamon's Blog Post and Code was used as a Basis</a></li>
+					</ul>
+					<h4>Stack Overflow Questions</h4>
+						<ul>
+							<li><a href="https://stackoverflow.com/questions/43278964/how-to-add-categories-to-your-chord-diagram-in-d3-js">How to add categories to your chord diagram in D3.js?</a></li>
+							<li><a href="https://stackoverflow.com/questions/43259039/how-to-add-labels-into-the-arc-of-a-chord-diagram-in-d3-js">How to add label into your chord diagram in D3.js?</a></li>
+							<li><a href="https://stackoverflow.com/questions/43592337/d3-js-show-escaped-line-breaks-from-a-csv-file">d3.js: Show escaped line breaks from a csv file</a></li>
+							<li><a href="https://stackoverflow.com/questions/44294005/d3-js-group-chords-in-a-diagram-via-a-single-colour">d3.js: Group Chords in a Diagram via a Single Colour</a></li>
+						</ul>
+				</p>
+			</div>
+		</div>
+  </body>
+</html>

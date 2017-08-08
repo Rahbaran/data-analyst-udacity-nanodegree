@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Desgin A/B Test</title>
+
+		<!-- Jquery & BS3 -->
+		<script src="../p7-create-a-d3js-story/jquery.min.js"></script>
+		<script src = "../p7-create-a-d3js-story/bootstrap.min.js"></script>
+		<link rel="stylesheet" href="../p7-create-a-d3js-story/bootstrap.min.css">
+		<style media="screen">
+			.table {
+				width: auto;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div class="container">
+			<div class="row">
+				<div class="col-md-offset-1 col-md-10">
+					<h1>Testing the Efficacy of a New Modal Window</h1>
+					<blockquote>
+					<p>Make design decisions for an A/B test, including which metrics to measure and how long the test should be run. Analyze the results of an A/B test that was run by Udacity and recommend whether or not to launch the change.</p>
+					</blockquote>
+					<p>In an experiment, Udacity tested a change for the user-flow how students can register for their nanodegree. If the student clicked &quot;start free trial&quot;, they were asked how much time they had available to devote to the course:</p>
+					<div class="figure">
+					<img src="image_0.png" class="img-rounded img-responsive" alt="image alt text" />
+					</div>
+					<br>
+					<p>If the student indicated 5 or more hours per week, they would be taken through the checkout process as usual. If they indicated fewer than 5 hours per week, a message would appear indicating that Udacity courses usually require a greater time commitment for successful completion, and suggesting that the student might like to access the course materials for free. The reason for this experimental modal window is to separate the wheat from the chaff. In other words, the <em>hypothesis</em> is if a student knows from the beginning that they don’t have enough time to finish the degree, then they shouldn’t even register. If the modal window is effective it is going to kill two birds with a stone. From the user’s perspective, less students are going to have a bad user experience due to high expectations. From Udacity’s perspective, instructors would invest less time in drop-outs and thus were more able to focus on students which are – probably – not going to drop out.</p>
+					<h1>Experiment Design</h1>
+					<h2>Metric Choice</h2>
+					<p>The <em>unit of diversion</em> is a cookie, although if the student enrolls in the free trial, they are tracked by user-id from that point forward. dmin indicates for each metric the minimum difference between control and experimental group to be considered as practically significant. In total, there are seven metrics at our disposal:</p>
+					<ol style="list-style-type: decimal">
+					<li><p><strong>Number of cookies:</strong> That is, number of unique cookies to view the course overview page. (dmin=3000)</p></li>
+					<li><p><strong>Number of user-ids:</strong> That is, number of users who enroll in the free trial. (dmin=50)</p></li>
+					<li><p><strong>Number of clicks:</strong> That is, number of unique cookies to click the &quot;Start free trial&quot; button (which happens before the free trial screener is trigger). (dmin=240)</p></li>
+					<li><p><strong>Click-through-probability ( = #clicks/#pageviews):</strong> That is, number of unique cookies to click the &quot;Start free trial&quot; button divided by number of unique cookies to view the course overview page. (dmin=0.01)</p></li>
+					<li><p><strong>Gross conversion (= #enrollment/#clicks):</strong> That is, number of user-ids to complete checkout and enroll in the free trial divided by number of unique cookies to click the &quot;Start free trial&quot; button. (dmin= 0.01)</p></li>
+					<li><p><strong>Retention (= #payment/#enrollment):</strong> That is, number of user-ids to remain enrolled past the 14-day boundary (and thus make at least one payment) divided by number of user-ids to complete checkout. (dmin=0.01)</p></li>
+					<li><p><strong>Net conversion (= #payment/#clicks):</strong> That is, number of user-ids to remain enrolled past the 14-day boundary (and thus make at least one payment) divided by the number of unique cookies to click the &quot;Start free trial&quot; button. (dmin= 0.0075)</p></li>
+					</ol>
+					<h2>Invariant Metrics</h2>
+					<p>Since <strong>number of cookies</strong> and <strong>number of clicks </strong>are determined before the modal window is triggered, these two metrics should be invariant. As <strong>Click-through-probability </strong>is the relation between the two, thus this metric is per definition also invariant.</p>
+					<h2>Evaluation Metrics</h2>
+					<p>As our modal window might be considered as a caution to potential students, we assume less people actually enrol/checkout, but more people stay enrolled after passing the 14-day boundary. Numbers of checkout is the numerator of <strong>gross conversion</strong> and denominator of <strong>retention. </strong>Hence, if the checkouts decrease, the <strong>gross conversion</strong> should also decrease. However, <strong>retention </strong>should increase as less people checkout and more people stay as they now have better understanding of the time commitment. If the number remaining students actually increases, <strong>net conversion </strong>must also increase. In other words there ought be a smaller gap between gross and net conversion.</p>
+					<h2 id="not-considered">Not considered</h2>
+					<p>Students are tracked by their user-ids from the point they enrol (s. above). As we expect to see a change in the enrolment-rate after the modal-window is triggered for the experiment group, <strong>number of user-ids </strong>is** **definitely not invariant. It thus seems to be an inferior evaluation metric in comparison to gross conversion as the latter is a ratio of enrollments to clicks (measured by number of user-ids) and thus <em>normalised</em> by our unit of diversion. Consequently, different control and experiment group sizes are not problematic.</p>
+					<h2>When to Launch</h2>
+					<p>We are going to launch the modal window if:</p>
+					<ol style="list-style-type: decimal">
+					<li><p>Gross conversion decreases more than the significant boundary (dmin = 0.01)</p></li>
+					<li><p>Net conversion <em>doesn’t</em> decrease below the significant boundary (dmin = 0.0075)</p></li>
+					<li><p>Retention rate <em>doesn’t</em> decrease below the significant boundary (dmin = 0.01)</p></li>
+					</ol>
+					<h2 id="measuring-standard-deviation">Measuring Standard Deviation</h2>
+					<p>Our metrics are probabilities. Thus, we are going to use the formula **sqrt(p*(1-p)/N)** for calculating the standard deviations. The baseline probabilities are as follows:</p>
+
+					<table class="table">
+					  <tr>
+					    <td>Probability of enrolling, given click</td>
+					    <td>0.20625</td>
+					  </tr>
+					  <tr>
+					    <td>Probability of payment, given enroll</td>
+					    <td>0.53</td>
+					  </tr>
+					  <tr>
+					    <td>Probability of payment, given click</td>
+					    <td>0.1093125</td>
+					  </tr>
+					</table>
+
+					<p>The sample size of <strong>5000 </strong>is given. The baseline click-through-probability on &quot;Start free trial&quot; is <strong>0.08</strong>:</p>
+
+					<table class="table">
+					  <tr>
+					    <td>N for gross conversion</td>
+					    <td>5000 * 0.08 = 400</td>
+					  </tr>
+					  <tr>
+					    <td>N for retention</td>
+					    <td>5000 * 0.08 * 0.20625 = 82.5</td>
+					  </tr>
+					  <tr>
+					    <td>N for net conversion</td>
+					    <td>5000 * 0.08 = 400</td>
+					  </tr>
+					</table>
+
+					<p>Which results to:</p>
+
+					<table class="table">
+					  <tr>
+					    <td>SD for gross conversion</td>
+					    <td>0,020230604</td>
+					  </tr>
+					  <tr>
+					    <td>SD for retention</td>
+					    <td>0,054949012</td>
+					  </tr>
+					  <tr>
+					    <td>SD for net conversion</td>
+					    <td>0,015601545</td>
+					  </tr>
+					</table>
+
+					<p>As gross conversion and net conversion are using cookies as a denominator, the <em>unit of analysis</em> and <em>unit of diversion</em> is equal – which is the cookie. Hence, the empirical and analytical variability should be close.</p>
+					<p>For retention rate it’s different as the unit of diversion &quot;number of students enrolled” whereas the unit of analysis is user-ids. However, they should be still close as it’s highly unlikely for a user to enrol twice.</p>
+					<h2 id="sizing">Sizing</h2>
+					<h3 id="number-of-samples-vs.-power">Number of Samples vs. Power</h3>
+					<p>We are not going to use a Bonferroni correction as we are only going to launch the modal window when all of our metrics are practically and statistically significant. This fact makes our research design conservative enough.</p>
+					<p>For the sample size, we are going to use the <a href="http://www.evanmiller.org/ab-testing/sample-size.html">sample size calculator</a> given by the instructors (in our case with alpha = 0.05, beta = 0.8):</p>
+					<ul>
+					<li><p>Sample size for gross conversion: we need 25,835 clicks on the modal window as clicks is our unit of analysis. To receive this amount of clicks, we need 25,835/0.08 = 322,937.5 page views <em>per group</em>. 0.08 is our baseline click through probability. In total, this means <strong>645,875</strong>.</p></li>
+					<li><p>Sample size for retention rate: we need 39,115 enrollments as enrollment is our unit of analysis. In other words, we need 39,115 /(0.08*0.20625) = 2,373,030 page views per variation, totalling <strong>4,746,061</strong>. 0.20625 is the probability of enrolling per given click.</p></li>
+					<li><p>Sample size for net conversion: we need 27,413 clicks on the modal window. The unit of analysis is the same as for gross conversion. Thus 27,413/0.08 = 342,662.5 page views for each group is necessary. In total this means <strong>685,325</strong>.</p></li>
+					</ul>
+					<h3 id="duration-vs.-exposure">Duration vs. Exposure</h3>
+					<p>As this experiment doesn’t have any physical and psychological risks on the users, respectively, diverting <strong>100%</strong> of the traffic should not be an issue from the user’s perspective. Furthermore, no sensitive information is tracked. From Udacity’s perspective there might be a tiny risk if the modal window surprisingly causes a heavy drop of checkouts.</p>
+					<p>However, using the <strong>whole</strong> traffic bears the advantage to finish the experiment sooner and thus we should accept the risk – especially, if the experiment should not take more than a few weeks (as required by the instructors). We need to divide the necessary sample size by our daily pageviews:</p>
+					<ul>
+					<li>Gross conversion: 645,875/40,000 is 17 days, which is fine.</li>
+					<li>Retention rate: 4,746,061/40,000**</li>
+					<li>Net conversion: 685,325/40,000 is a 18 days which is still fine.</li>
+					</ul>
+					<p>**is 176 days, which is definitely too long.</p>
+					<p>The amount of 176 days is definitely too much to consider it as a few weeks. Consequently, we are going to drop the retention rate as an evaluation metric and merely stick to gross and net conversion. Besides, we are going to add three days to the minimum necessary days. In other words, the experiment is then rounded up to exactly three week (18 + 3 = 21 days). In doing so, we eliminate any bias regarding visitor behaviour towards weekdays or weekends.</p>
+					<h1 id="experiment-analysis">Experiment Analysis</h1>
+					<h2 id="sanity-checks">Sanity Checks</h2>
+					<h3 id="confidence-intervals">Confidence Intervals</h3>
+					<p>We expect the number of cookies and clicks to split evenly between the control and experimental group (i.e., 50%) because we intend to split our web traffic evenly. Besides, there shouldn’t be any difference click-through-probability, so we expect 0% here. As requested, we check the confidence interval for a 95% two tailed test (i.e., <strong>z = 1.96</strong>). We are going to determine p_pool and SE_pool:</p>
+					<div class="figure">
+					<img src="image_1.png" class="img-rounded img-responsive" alt="image alt text" />
+					</div>
+					<table class="table">
+					  <tr>
+					    <td>Invariant Metric</td>
+					    <td>Observed Value</td>
+					    <td>Lower Bound</td>
+					    <td>Upper Bound</td>
+					    <td>Sanity Check passed?</td>
+					  </tr>
+					  <tr>
+					    <td>number of cookies</td>
+					    <td>0.5006</td>
+					    <td>0.4983</td>
+					    <td>0.5030</td>
+					    <td>yes</td>
+					  </tr>
+					  <tr>
+					    <td>number of clicks</td>
+					    <td>0.5005</td>
+					    <td>0.4922</td>
+					    <td>0.5087</td>
+					    <td>yes</td>
+					  </tr>
+					  <tr>
+					    <td>Difference in click-through-probability</td>
+					    <td>0.0001</td>
+					    <td>-0.0012</td>
+					    <td>0.0013</td>
+					    <td>yes</td>
+					  </tr>
+					</table>
+
+					<h2>Result Analysis</h2>
+					<h3>Effect Size Tests</h3>
+					<ul>
+					<li><p>The rate of gross conversion in our control and experimental group is 0.2189 and 0.1983, respectively. The difference is thus 0.1983 - 0.2189 = <strong>-0.0206 </strong>(rounded).</p></li>
+					<li><p>The rate of net conversion in our control and experimental group is 0.1176 and 0.1127, respectively. The difference is thus 0.1127 - 0.1176 = <strong>-0.049 </strong>(rounded).</p></li>
+					<li><p>For alpha = 0.05 and Z = 1.96 this means:</p></li>
+					</ul>
+					<table class="table">
+					  <tr>
+					    <td>Metric</td>
+					    <td>Practical Significance</td>
+					    <td>Observed difference</td>
+					    <td>Lower Bound</td>
+					    <td>Upper Bound</td>
+					    <td>SE_ Pool</td>
+					    <td>Result</td>
+					  </tr>
+					  <tr>
+					    <td>gross conversion</td>
+					    <td>(-)0.01</td>
+					    <td>-0.020555</td>
+					    <td>-0.029123</td>
+					    <td>-0.011986</td>
+					    <td>0.004372</td>
+					    <td>Statistically and practically passed</td>
+					  </tr>
+					  <tr>
+					    <td>net conversion</td>
+					    <td>(-)0.075</td>
+					    <td>-0.004874</td>
+					    <td>-0.011605</td>
+					    <td>0.0018572</td>
+					    <td>0.003434</td>
+					    <td>Both not passed</td>
+					  </tr>
+					</table>
+
+
+					<h3 id="sign-tests">Sign Tests</h3>
+					<p>For <strong>alpha = 0.05</strong> the results are*:</p>
+					<table class="table">
+					  <tr>
+					    <td>Metric</td>
+					    <td>Sign Test p-Value</td>
+					    <td>Statistically Significant?</td>
+					  </tr>
+					  <tr>
+					    <td>gross conversion</td>
+					    <td>0.002599</td>
+					    <td>yes</td>
+					  </tr>
+					  <tr>
+					    <td>net conversion</td>
+					    <td>0.6776</td>
+					    <td>no</td>
+					  </tr>
+					</table>
+
+
+					<p>*R was used binom.test(x, n, p = 0.5, alternative = c(&quot;two.sided&quot;, &quot;less&quot;, &quot;greater&quot;), conf.level = 0.95)with n = 23 and x = 4 and 13, respectively.</p>
+					<h3 id="summary">Summary</h3>
+					<p>As mentioned above, we didn’t use a Bonferroni correction. If we have had used a Bonferroni correction, the likelihood of a type II (false negative) error would have had increased.</p>
+					<p>There’s no discrepancy between the effect size hypothesis test and sign test. Both indicate a practical and statistical significance for gross conversion but NOT for net conversion.</p>
+					<h2 id="recommendation">Recommendation</h2>
+					<p>The requirement for launching the modal window was that both metrics ought to be significant.</p>
+					<p>The decrease of gross conversion is indeed practically and statistically significant. However, for net conversion our results are neither statistically nor practically significant. Not statistically, as the confidence interval contains zero. Not practically, as the lower bound of the confidence interval (-0.11605) is below dmin = -0.0075, which bears the risk that net conversion decreases more than our set boundary. Concluding, we are 95% confident that if a modal window is launched, a decrease in enrollment <strong>not</strong> coupled to an increase in students staying enrolled occurs.</p>
+					<p>We should thus not launch the modal window – for now.</p>
+					<h1 id="follow-up-experiment">Follow-Up Experiment</h1>
+					<p>It might be that the modal window somehow created a friction in the gross conversion process or users got intimidated by the time commitment. A new experiment should be conducted which starts after the enrolment. My idea is to show write a follow-up email <em>after</em> subscribing which includes the time commitment and a motivational video (e.g., &quot;this where you can be in a year with just a weekly 5-hour-commitment&quot;).</p>
+					<p>Hypothesis: Users stay longer enrolled (and thus pay) if they receive a motivational video after their enrolment.</p>
+					<ul>
+					<li><p>Unit of diversion: User Id. As soon as, users are enrolled, they are going to be diverted either to the control group or experiment group</p></li>
+					<li><p>Invariant metric: Enrollments. As the experiment starts after enrolling, the number of enrollments should not be affected.</p></li>
+					<li><p>Evaluation metric: Retention rate. Retention is defined as #payment/#enrollment. As we are interested if more people stay enrolled and thus pay after reading/watching the motivational video, retention rate is an adequate metric.</p></li>
+					</ul>
+				</div> <!-- col -->
+			</div> <!-- row -->
+		</div> <!-- container -->
+	</body>
+</html>
